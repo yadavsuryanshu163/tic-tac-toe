@@ -1,6 +1,6 @@
 let boxes = document.querySelectorAll(".box");
 let resetBtn = document.querySelector("#reset");
-let msg = document.querySelector("#msg"); // Make sure you have an element with id="msg"
+let msg = document.querySelector("#msg"); 
 
 let turnO = true; // player O starts
 
@@ -10,7 +10,7 @@ const winPatterns = [
     [0,4,8],
     [1,4,7],
     [2,5,8],
-    [2,4,6], // fixed diagonal
+    [2,4,6], 
     [3,4,5],
     [6,7,8]
 ];
@@ -29,7 +29,7 @@ boxes.forEach((box) => {
         box.style.fontSize = "40px";
         box.disabled = true;
         turnO = !turnO; // switch turn
-        checkWin(); // check after each move
+        checkWin(); 
     });
 });
 
