@@ -49,7 +49,7 @@ const enableBoxes = () => {
 const showWinner = (winner) => {
     alert(`🎉 Congratulations! Winner is ${winner}`);
     msg.innerText = `🎉 Congratulations! Winner is ${winner}`;
-    reset();
+    turn0=false;
     disableBoxes();
 };
 
