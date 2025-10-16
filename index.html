@@ -1,33 +1,546 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tic-tac-toe</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tic Tac Toe — Minimax + Alpha-Beta</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --muted:#9AA4B2;
+    --accent:#7C5CFF;
+    --accent-2:#00C2A8;
+    --danger:#FF6B6B;
+    --glass: rgba(255,255,255,0.03);
+    --glass-2: rgba(255,255,255,0.02);
+    --white:#e6eef8;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(124,92,255,0.09), transparent 8%),
+    radial-gradient(900px 400px at 90% 90%, rgba(0,194,168,0.06), transparent 10%),
+    var(--bg); color:var(--white); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+
+  .wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:48px 20px;
+  }
+
+  .card{
+    width:100%;
+    max-width:920px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.04);
+    border-radius:16px;
+    padding:28px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    display:grid;
+    grid-template-columns: 1fr 380px;
+    gap:20px;
+    align-items:start;
+  }
+
+  /* left: board + controls */
+  .left{
+    padding:10px 6px;
+  }
+
+  header.app-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .logo{
+    width:56px;height:56px;border-radius:12px;
+    background: linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#fff;
+    box-shadow: 0 6px 16px rgba(124,92,255,0.12), inset 0 -6px 18px rgba(0,0,0,0.12);
+  }
+  .title-block{
+    line-height:1;
+  }
+  .title-block h1{font-size:18px;margin:0}
+  .title-block p{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+  /* board */
+  .board{
+    width:420px;height:420px;
+    max-width:100%;
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    grid-template-rows: repeat(3,1fr);
+    gap:12px;
+    margin-top:18px;
+    padding:12px;
+    border-radius:14px;
+    background: linear-gradient(180deg,var(--glass),var(--glass-2));
+    border: 1px solid rgba(255,255,255,0.03);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  .cell{
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:78px;
+    cursor:pointer;
+    color:var(--white);
+    user-select:none;
+    transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  }
+  .cell:hover{ transform:translateY(-6px); box-shadow: 0 10px 28px rgba(2,6,23,0.75); }
+  .cell.disabled{ opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .cell.x{ color: #FFB86B; text-shadow: 0 2px 8px rgba(255,184,107,0.12); }
+  .cell.o{ color: #7C5CFF; text-shadow: 0 2px 10px rgba(124,92,255,0.12); }
+
+  /* right: panel */
+  .panel{
+    padding:18px;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .status{
+    font-size:14px;color:var(--muted);margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .status .turn{
+    display:flex;gap:8px;align-items:center;
+  }
+  .dot{width:10px;height:10px;border-radius:50%;}
+  .dot.user{ background: #FFB86B; box-shadow: 0 6px 16px rgba(255,184,107,0.08); }
+  .dot.ai{ background: linear-gradient(135deg,#A28BFF,#7C5CFF); box-shadow:0 6px 16px rgba(124,92,255,0.08); }
+
+  .controls{ display:flex; gap:10px; margin:10px 0 18px; flex-wrap:wrap;}
+  .btn{
+    background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px 14px;border-radius:10px;color:var(--white);
+    cursor:pointer;font-weight:600;transition:all 150ms ease;
+  }
+  .btn:hover{ transform:translateY(-4px); box-shadow: 0 8px 24px rgba(2,6,23,0.5); }
+  .btn.primary{ background: linear-gradient(135deg,var(--accent),var(--accent-2)); border:none; color:white; }
+  .small{ font-size:13px; padding:8px 10px; border-radius:8px; }
+
+  .row{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+
+  .switch{
+    display:inline-flex; align-items:center; gap:10px; font-size:14px; color:var(--muted);
+  }
+  .radio{
+    display:flex; gap:8px;
+    background:rgba(255,255,255,0.02); padding:6px; border-radius:8px; border:1px solid rgba(255,255,255,0.02);
+  }
+  .radio button{border-radius:6px}
+
+  .scores{ margin-top:12px; color:var(--muted); font-size:14px; }
+  .scores b{ color:var(--white); display:inline-block; min-width:34px; }
+
+  footer.notes{ margin-top:18px; color:var(--muted); font-size:13px; line-height:1.3; }
+
+  /* responsive */
+  @media (max-width:880px){
+    .card{ grid-template-columns:1fr; padding:18px; }
+    .panel{ order:2; margin-top:10px }
+    .left{ order:1 }
+    .board{ width:100%; height:360px; gap:10px; }
+    .cell{ font-size:64px; border-radius:8px;}
+  }
+</style>
 </head>
 <body>
-    <main>
-        <h1>Tic Tac Toe</h1>
-        <p class="msg"></p>
-        <div class="container">
-            <div class="game">
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-                <button class="box"></button>
-            </div>
+<div class="wrap">
+  <div class="card" role="application" aria-label="Tic tac toe AI">
+    <div class="left">
+      <header class="app-title">
+        <div class="logo">TTT</div>
+        <div class="title-block">
+          <h1>Tic-Tac-Toe — Minimax AI</h1>
+          <p>Unbeatable AI using Minimax + Alpha-Beta pruning (depth aware)</p>
         </div>
-        <button id="resetBtn" onclick="reset()">reset button</button>
-        <button id="new" ondblclick="reset()">new game</button>
-        
-    </main>
-    
- <script src="app.js"></script>   
+      </header>
+
+      <div id="board" class="board" aria-live="polite" role="grid">
+        <!-- 9 cells inserted by JS -->
+      </div>
+    </div>
+
+    <aside class="panel" aria-hidden="false">
+      <div class="status">
+        <div class="turn">
+          <div id="turnDot" class="dot user" aria-hidden="true"></div>
+          <div id="statusText">Your move</div>
+        </div>
+        <div id="aiHint" style="color:var(--muted);font-size:13px">AI: thinking in <span id="ms">0</span> ms</div>
+      </div>
+
+      <div class="row">
+        <div class="radio" role="radiogroup" aria-label="Start player">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;">
+            <input type="radio" name="starter" value="human" checked /> You start
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;">
+            <input type="radio" name="starter" value="ai" /> AI starts
+          </label>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="restart" class="btn">Restart</button>
+        <button id="hint" class="btn small">Hint (AI suggests)</button>
+        <button id="swap" class="btn small">Swap Sides</button>
+      </div>
+
+      <div class="scores">
+        <div>Score — You: <b id="youScore">0</b> | AI: <b id="aiScore">0</b> | Draws: <b id="drawScore">0</b></div>
+      </div>
+
+      <footer class="notes">
+        <div style="margin-top:10px;color:var(--muted)">This demo runs entirely in your browser. The AI is optimal for 3×3 Tic-Tac-Toe and cannot be beaten.</div>
+      </footer>
+    </aside>
+  </div>
+</div>
+
+<script>
+/*
+  Tic Tac Toe — frontend + Minimax with alpha-beta pruning
+  - User plays 'X' by default; AI plays 'O'
+  - Depth-aware scoring: prefer faster wins, delay losses
+  - Alpha-Beta pruning implemented in minimax()
+*/
+
+/* --- Game state --- */
+const boardEl = document.getElementById('board');
+const statusText = document.getElementById('statusText');
+const turnDot = document.getElementById('turnDot');
+const msLabel = document.getElementById('ms');
+const youScoreEl = document.getElementById('youScore');
+const aiScoreEl = document.getElementById('aiScore');
+const drawScoreEl = document.getElementById('drawScore');
+
+let board = [
+  ['','',''],
+  ['','',''],
+  ['','','']
+];
+
+let human = 'X';
+let ai = 'O';
+let currentPlayer = 'human'; // 'human' or 'ai'
+let playing = true;
+let scores = { you:0, ai:0, draw:0 };
+
+/* create 9 cells */
+function initBoardUI(){
+  boardEl.innerHTML = '';
+  for(let r=0;r<3;r++){
+    for(let c=0;c<3;c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.setAttribute('role','button');
+      cell.setAttribute('aria-label',`cell ${r+1},${c+1}`);
+      cell.tabIndex = 0;
+      cell.addEventListener('click', onCellClick);
+      cell.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' ') onCellClick(e);
+      });
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+/* utilities */
+function renderBoard(){
+  const cells = boardEl.querySelectorAll('.cell');
+  cells.forEach(el=>{
+    const r = +el.dataset.r, c = +el.dataset.c;
+    if(board[r][c] === 'X'){ el.textContent = 'X'; el.classList.add('x'); el.classList.remove('o'); el.classList.remove('disabled'); }
+    else if(board[r][c] === 'O'){ el.textContent = 'O'; el.classList.add('o'); el.classList.remove('x'); el.classList.add('disabled'); }
+    else { el.textContent = ''; el.classList.remove('x','o'); el.classList.remove('disabled'); }
+  });
+  updateStatusUI();
+}
+
+/* mark a move, returns true if success */
+function makeMove(r,c,player){
+  if(!playing) return false;
+  if(board[r][c] !== '') return false;
+  board[r][c] = (player === 'human') ? human : ai;
+  renderBoard();
+  return true;
+}
+
+/* check terminal state */
+function evaluateBoard(){
+  // check rows & cols
+  for(let i=0;i<3;i++){
+    if(board[i][0] !== '' && board[i][0] === board[i][1] && board[i][1] === board[i][2]){
+      return (board[i][0] === ai) ? +10 : -10;
+    }
+    if(board[0][i] !== '' && board[0][i] === board[1][i] && board[1][i] === board[2][i]){
+      return (board[0][i] === ai) ? +10 : -10;
+    }
+  }
+  // diagonals
+  if(board[0][0] !== '' && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+    return (board[0][0] === ai) ? +10 : -10;
+  }
+  if(board[0][2] !== '' && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+    return (board[0][2] === ai) ? +10 : -10;
+  }
+  return 0; // no winner yet OR draw
+}
+function hasMovesLeft(){
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++) if(board[r][c] === '') return true;
+  return false;
+}
+
+/* minimax with alpha-beta and depth */
+function minimax(isMax, depth, alpha, beta){
+  const score = evaluateBoard();
+  if(score === 10) return score - depth;   // prefer quicker wins for AI
+  if(score === -10) return score + depth; // prefer delayed losses
+  if(!hasMovesLeft()) return 0;
+
+  if(isMax){
+    let best = -Infinity;
+    for(let r=0;r<3;r++){
+      for(let c=0;c<3;c++){
+        if(board[r][c] === ''){
+          board[r][c] = ai;
+          const val = minimax(false, depth+1, alpha, beta);
+          board[r][c] = '';
+          best = Math.max(best, val);
+          alpha = Math.max(alpha, best);
+          if(beta <= alpha) return best; // prune
+        }
+      }
+    }
+    return best;
+  } else {
+    let best = +Infinity;
+    for(let r=0;r<3;r++){
+      for(let c=0;c<3;c++){
+        if(board[r][c] === ''){
+          board[r][c] = human;
+          const val = minimax(true, depth+1, alpha, beta);
+          board[r][c] = '';
+          best = Math.min(best, val);
+          beta = Math.min(beta, best);
+          if(beta <= alpha) return best; // prune
+        }
+      }
+    }
+    return best;
+  }
+}
+
+/* find best move for AI */
+function findBestMove(){
+  let bestVal = -Infinity;
+  let bestMove = null;
+  const t0 = performance.now();
+  for(let r=0;r<3;r++){
+    for(let c=0;c<3;c++){
+      if(board[r][c] === ''){
+        board[r][c] = ai;
+        const moveVal = minimax(false, 0, -Infinity, Infinity);
+        board[r][c] = '';
+        if(moveVal > bestVal){
+          bestVal = moveVal;
+          bestMove = {r,c};
+        }
+      }
+    }
+  }
+  const t1 = performance.now();
+  return {move: bestMove, ms: Math.round(t1 - t0)};
+}
+
+/* UI & game flow */
+function onCellClick(e){
+  if(!playing) return;
+  if(currentPlayer !== 'human') return;
+  const el = e.currentTarget;
+  const r = +el.dataset.r, c = +el.dataset.c;
+  if(board[r][c] !== '') return;
+
+  // make move
+  const ok = makeMove(r,c,'human');
+  if(!ok) return;
+  // check result
+  const res = checkAndHandleResult();
+  if(res) return;
+
+  // AI turn
+  currentPlayer = 'ai';
+  updateStatusUI();
+  // small delay to feel natural
+  setTimeout(() => {
+    const {move, ms} = findBestMove();
+    msLabel.textContent = ms;
+    if(move){
+      makeMove(move.r, move.c, 'ai');
+    }
+    checkAndHandleResult();
+    currentPlayer = 'human';
+    updateStatusUI();
+  }, 180);
+}
+
+function checkAndHandleResult(){
+  const score = evaluateBoard();
+  if(score === 10){
+    // AI wins
+    playing = false;
+    highlightWinningLine(ai);
+    statusText.textContent = 'AI wins';
+    turnDot.className = 'dot ai';
+    scores.ai++;
+    aiScoreEl.textContent = scores.ai;
+    return true;
+  } else if(score === -10){
+    playing = false;
+    highlightWinningLine(human);
+    statusText.textContent = 'You win';
+    turnDot.className = 'dot user';
+    scores.you++;
+    youScoreEl.textContent = scores.you;
+    return true;
+  } else if(!hasMovesLeft()){
+    playing = false;
+    statusText.textContent = 'Draw';
+    turnDot.className = 'dot';
+    msLabel.textContent = '0';
+    scores.draw++;
+    drawScoreEl.textContent = scores.draw;
+    return true;
+  }
+  return false;
+}
+
+function updateStatusUI(){
+  if(!playing){
+    // already handled
+    return;
+  }
+  if(currentPlayer === 'human'){
+    statusText.textContent = 'Your move';
+    turnDot.className = 'dot user';
+  } else {
+    statusText.textContent = 'AI thinking...';
+    turnDot.className = 'dot ai';
+  }
+  msLabel.textContent = '0';
+}
+
+/* highlight the winning line for visual feedback */
+function highlightWinningLine(winnerChar){
+  // find which line
+  let line = null;
+  for(let i=0;i<3;i++){
+    if(board[i][0] === winnerChar && board[i][1] === winnerChar && board[i][2] === winnerChar){
+      line = [{r:i,c:0},{r:i,c:1},{r:i,c:2}]; break;
+    }
+    if(board[0][i] === winnerChar && board[1][i] === winnerChar && board[2][i] === winnerChar){
+      line = [{r:0,c:i},{r:1,c:i},{r:2,c:i}]; break;
+    }
+  }
+  if(!line){
+    if(board[0][0] === winnerChar && board[1][1] === winnerChar && board[2][2] === winnerChar){
+      line = [{r:0,c:0},{r:1,c:1},{r:2,c:2}];
+    } else if(board[0][2] === winnerChar && board[1][1] === winnerChar && board[2][0] === winnerChar){
+      line = [{r:0,c:2},{r:1,c:1},{r:2,c:0}];
+    }
+  }
+  if(line){
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach(el=>{
+      const r = +el.dataset.r, c = +el.dataset.c;
+      // dim non-winning
+      const match = line.some(p => p.r === r && p.c === c);
+      if(!match) el.style.opacity = '0.35';
+      else el.style.transform = 'translateY(-6px) scale(1.05)';
+      el.classList.add('disabled');
+    });
+  }
+}
+
+/* controls: restart, hint, swap sides, starter radio */
+document.getElementById('restart').addEventListener('click', startNewGame);
+document.getElementById('hint').addEventListener('click', ()=>{
+  if(!playing) return;
+  const {move} = findBestMove();
+  if(move){
+    // briefly flash the suggested cell
+    const idx = move.r*3 + move.c;
+    const cell = boardEl.children[idx];
+    cell.animate([
+      { boxShadow: '0 0 0 0 rgba(124,92,255,0.0)'},
+      { boxShadow: '0 0 0 14px rgba(124,92,255,0.06)'}
+    ], {duration:600, easing:'ease-out'});
+  }
+});
+document.getElementById('swap').addEventListener('click', ()=>{
+  // swap markers and restart
+  [human, ai] = [ai, human];
+  // if human is now 'O', AI should be first
+  document.querySelector('input[name="starter"][value="ai"]').checked = (human === 'O');
+  startNewGame();
+});
+
+// starter radios
+document.querySelectorAll('input[name="starter"]').forEach(radio=>{
+  radio.addEventListener('change', ()=>{
+    startNewGame();
+  });
+});
+
+/* start new game */
+function startNewGame(){
+  board = [['','',''],['','',''],['','','']];
+  playing = true;
+  // who starts?
+  const starter = document.querySelector('input[name="starter"]:checked')?.value || 'human';
+  currentPlayer = starter === 'ai' ? 'ai' : 'human';
+  // reset UI cells
+  const cells = boardEl.querySelectorAll('.cell');
+  cells.forEach(el=>{
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.classList.remove('disabled');
+  });
+  renderBoard();
+  updateStatusUI();
+  // if AI starts, make its move
+  if(currentPlayer === 'ai'){
+    setTimeout(()=>{
+      const {move, ms} = findBestMove();
+      msLabel.textContent = ms;
+      if(move) makeMove(move.r, move.c, 'ai');
+      currentPlayer = 'human';
+      renderBoard();
+      updateStatusUI();
+    }, 180);
+  }
+}
+
+/* initial setup */
+initBoardUI();
+startNewGame();
+renderBoard();
+
+</script>
 </body>
 </html>
